@@ -1,0 +1,186 @@
+# Configuration file with default training parameters
+
+# This is a new top-level variable that holds the full, timestamped save path
+# This variable will exist in the `cfg` object passed to your code
+run_name: run
+full_save_dir: "./log/${run_name}_${now:%Y-%m-%d_%H-%M-%S}"
+
+# Hydra configuration for output directory
+hydra:
+  run:
+    # Use the new top-level variable to set Hydra's output directory
+    dir: ${full_save_dir}
+
+# Base options for hardware and logging
+cuda: true
+device: 0
+seed: 10
+batch_size: 64
+train_platform_type: WandBPlatform
+external_mode: false
+
+# Diffusion model parameters
+diffusion:
+  predict_xstart: True 
+  noise_schedule: 'cosine'
+  diffusion_steps: 20
+  sigma_small: true
+  learn_sigma: False
+  rescale_timesteps: False
+
+
+# Dataset options
+dataset:
+  load_mean_std: False
+  load_data: True
+  name: 'v0'
+  dataset: 'robot'
+  data_file: /home/mcarroll/Documents/cd-2/humanoid_tracking/whole_body_tracking/logs/rsl_rl/g1_flat/2025-08-26_10-49-04_lefan_walk/collection/robot_sa_dataset_0_repeats_5_noised_0.1_action.pkl
+  corrupt_context: False
+  state_data_keys: [
+    'root_xy_position',
+    'root_yaw',
+    'base_lin_vel',
+    'base_ang_vel',
+    'root_h',
+    'gravity', 
+    'local_body_pos',
+    # 'local_body_rots',
+    'local_body_vel',
+    # 'local_body_ang_vel'
+  ]
+  context_data_keys: [
+    'base_lin_vel',
+    'base_ang_vel',
+    'joint_pos',
+    'joint_vel',
+    'gravity'
+  ]
+  action_data_keys: ['actions']
+
+
+
+# Model architecture and hyperparameters
+model:
+  prediction_type: 'state'  # [state, context] Change the prediction data type
+  prefix_type: 'state'
+  cross_attn_conds: ['emb', 'context', 'actions'] # or null
+  arch: 'trans_dec'
+  text_encoder_type: null
+  emb_trans_dec: false
+  cond_mode: ['context', 'target_vel']
+  cond_mask_prob: 0.
+  prefix_comp: False
+  attn_type: 'full'
+  
+
+  ff_size: 1024
+  num_heads: 4
+  dropout: 0.3
+  pe_dropout: 0.1
+  activation: "gelu"
+  clip_version: 'ViT-B/32'
+  emb_policy: 'cat'
+  num_layers: 6
+  latent_dim: 512
+  mask_frames: false
+  lambda_target_vel: 1.0
+  target_vel_type: 'end'
+  unconstrained: false
+  pos_embed_max_len: 5000
+  independant_noise: False
+
+  context_len: 4
+  pred_len: 16
+  action_pred_len: 8 #how many steps to train action prediction on, 0 means all 
+
+  multi_encoder_type: 'single'
+  target_enc_layers: 1
+  target_vel_mask_prob: 0
+
+  guidance_fn: null
+  
+  
+
+  dataset: ${dataset.name}
+
+
+# Training loop settings
+training:
+  # This line now uses the same top-level variable, which
+  # will be correctly resolved in the `cfg` object.
+  use_ema: True
+  gen_guidance_param: 1
+  save_dir: ${full_save_dir}
+  batch_size: ${batch_size}
+  
+  # Learning rate.
+  lr: 0.0001
+  
+  # Optimizer weight decay.
+  weight_decay: 0.0
+  
+  # Number of learning rate anneal steps.
+  lr_anneal_steps: 0
+  
+  # Batch size during evaluation loop. Do not change this unless you know what you are doing. 
+  # T2m precision calculation is based on fixed batch size 32.
+  eval_batch_size: 32
+  
+  # Which split to evaluate on during training.
+  # Choices are 'val' or 'test'.
+  eval_split: "test"
+  
+  # If True, will run evaluation during training.
+  eval_during_training: false
+  
+  # Number of repetitions for evaluation loop during training.
+  eval_rep_times: 3
+  
+  # Number of samples to use for evaluation.
+  # If -1, will use all samples in the specified split.
+  eval_num_samples: 1000
+  
+  # Log losses each N steps.
+  log_interval: 500
+  
+  # Save checkpoints and run evaluation each N steps.
+  save_interval: 50000
+  
+  # Training will stop after the specified number of steps.
+  num_steps: 600000
+  
+  # Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.
+  num_frames: 60
+  
+  # If not empty, will start from the specified checkpoint (path to model###.pt file).
+  resume_checkpoint: ""
+  
+  # If True, will generate motions during training, on each save interval.
+  gen_during_training: false
+  
+  # Number of samples to sample while generating.
+  gen_num_samples: 3
+  
+  # Number of repetitions, per sample (text prompt/action).
+  gen_num_repetitions: 2
+
+  # Average model beta (for EMA).
+  avg_model_beta: 0.9999
+  
+  # Adam beta2.
+  adam_beta2: 0.999
+  
+  # Force single joint configuration by specifying the joints (coma separated). 
+  # If None, will use the random mode for all end effectors.
+  target_joint_names: "DIMP_FINAL"
+  
+  # If true, and we use a prefix model, will generate motions in an autoregressive loop.
+  autoregressive: false
+  
+  # If true, include the init prefix in the output, otherwise, will drop it.
+  autoregressive_include_prefix: false
+  
+  # Sets the source of the init frames, either from the dataset or isaac init poses.
+  # Choices are 'data' or 'isaac'.
+  autoregressive_init: "data"

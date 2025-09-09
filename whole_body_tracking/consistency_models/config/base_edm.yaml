@@ -1,0 +1,132 @@
+run_name: run
+full_save_dir: "./log/${run_name}_${now:%Y-%m-%d_%H-%M-%S}"
+
+# Hydra configuration for output directory
+hydra:
+  run:
+    # Use the new top-level variable to set Hydra's output directory
+    dir: ${full_save_dir}
+
+# Base options for hardware and logging
+cuda: true
+device: 0
+seed: 10
+batch_size: 64
+train_platform_type: WandBPlatform
+
+training:
+  batch_size: ${batch_size}
+  log_interval: 500
+  save_interval: 50000
+  weight_decay: 0.0
+  ema_rate: "0.999"
+  lr: 0.0001
+  use_fp16: false
+  resume_checkpoint: False
+  save_dir: ${full_save_dir}
+  use_checkpoint: false
+  fp16_scale_growth: False
+  lr_anneal_steps: 0
+  num_steps: 600000
+
+
+# Dataset options
+# Dataset options
+dataset:
+  load_mean_std: False
+  load_data: True
+  name: 'v0'
+  dataset: 'robot'
+  data_file: /home/mcarroll/Documents/cd-2/humanoid_tracking/whole_body_tracking/logs/rsl_rl/g1_flat/2025-08-26_10-49-04_lefan_walk/collection/robot_sa_dataset_0_repeats_5_noised_0.1_action.pkl
+  corrupt_context: False
+  state_data_keys: [
+    'root_xy_position',
+    'root_yaw',
+    'base_lin_vel',
+    'base_ang_vel',
+    'root_h',
+    'gravity', 
+    'local_body_pos',
+    # 'local_body_rots',
+    'local_body_vel',
+    # 'local_body_ang_vel'
+  ]
+  context_data_keys: [
+    'base_lin_vel',
+    'base_ang_vel',
+    'joint_pos',
+    'joint_vel',
+    'gravity'
+  ]
+  action_data_keys: ['actions']
+
+
+# Model architecture and hyperparameters
+model:
+  kerras_timestep: True
+  prediction_type: 'state'  # [state, context] Change the prediction data type
+
+
+  text_encoder_type: null
+  emb_trans_dec: false
+  cond_mask_prob: 0.
+
+  ff_size: 1024
+
+
+  activation: "gelu"
+  clip_version: 'ViT-B/32'
+  emb_policy: 'cat'
+  latent_dim: 512
+  mask_frames: false
+
+  unconstrained: false
+  pos_embed_max_len: 5000
+
+  multi_encoder_type: 'single'
+  target_enc_layers: 1
+  target_vel_mask_prob: 0
+
+  guidance_fn: null
+
+  dataset: ${dataset.name}
+
+  prefix_type: 'context'
+  cross_attn_conds: null #['emb', 'context', 'actions'] # or null
+  arch: 'trans_enc'
+  cond_mode: ['target_vel']
+  prefix_comp: True
+  attn_type: 'full'
+
+  independant_noise: True
+  num_heads: 4
+  num_layers: 6
+  dropout: 0.3
+  lambda_target_vel: 10.
+  context_len: 4
+  pred_len: 16
+  action_pred_len: 8 #how many steps to train action prediction on, 0 means all 
+  apply_weights_to_conds: False
+
+
+
+diffusion:
+  distillation: False
+  sigma_min: 0.002
+  sigma_max: 80.0
+  learn_sigma: false
+  weight_schedule: "karras"
+  schedule_sampler: "lognormal"
+  num_timesteps: 40
+
+
+sample:
+  sampler: 'heun'
+  steps: ${diffusion.num_timesteps}
+  sigma_min: 0.002
+  sigma_max: 80
+  s_churn: 0
+  s_tmin: 0
+  s_tmax: .inf
+  s_noise: 1.0
+  ts: ''

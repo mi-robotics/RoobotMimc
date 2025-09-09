@@ -1,0 +1,26 @@
+# conf/config.yaml
+
+defaults:
+  - base          # First, load all settings from base_config.yaml
+  - _self_               # Good practice: ensures values in *this* file have high priority
+
+
+# Model architecture and hyperparameters
+model:
+  prefix_type: 'context'
+  cross_attn_conds: null #['emb', 'context', 'actions'] # or null
+  arch: 'trans_enc'
+  cond_mode: ['target_vel']
+  prefix_comp: True
+  attn_type: 'full'
+
+  independant_noise: True
+  num_heads: 4
+  num_layers: 6
+  dropout: 0.3
+  lambda_target_vel: 1.
+  context_len: 4
+  pred_len: 16
+  action_pred_len: 8 #how many steps to train action prediction on, 0 means all 
+
+  guidance_fn: VelocityGuidance

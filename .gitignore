@@ -1,0 +1,11 @@
+IsaacLab/
+.vscode/
+/data/
+output/
+log/
+logs/
+LAFAN1_Retargeting_Dataset/
+smpl/
+
+/whole_body_tracking/source/whole_body_tracking/whole_body_tracking/assets/
+artifacts/
